@@ -1,39 +1,36 @@
-typedef ll T;
-const T inf = 1e18;
-
-struct hung {
-    int n, m;
-    vector<T> u, v; vector<int> p, way;
-    vector<vector<T>> g;
-    
-    hung(int n, int m):
-        n(n), m(m), g(n+1, vector<T>(m+1, inf-1)),
-        u(n+1), v(m+1), p(m+1), way(m+1) {}
-        
-    void set(int u, int v, T w) { g[u+1][v+1] = w; }
-    
-    T assign() {
-        for (int i = 1; i <= n; ++i) {
-            int j0 = 0; p[0] = i;
-            vector<T> minv(m+1, inf);
-            vector<char> used(m+1, false);
-            do {
-                used[j0] = true;
-                int i0 = p[j0], j1; T delta = inf;
-                for (int j = 1; j <= m; ++j) if (!used[j]) {
-                    T cur = g[i0][j] - u[i0] - v[j];
-                    if (cur < minv[j]) minv[j] = cur, way[j] = j0;
-                    if (minv[j] < delta) delta = minv[j], j1 = j;
-                }
-                for (int j = 0; j <= m; ++j)
-                    if (used[j]) u[p[j]] += delta, v[j] -= delta;
-                    else minv[j] -= delta;
-                j0 = j1;
-            } while (p[j0]);
-            do {
-                int j1 = way[j0]; p[j0] = p[j1]; j0 = j1;
-            } while (j0);
-        }
-        return -v[0];
-    }
-};
+/*
+ * returns (min cost, match), where L[i] is matched with
+ * R[match[i]]. Negate costs for max cost. Requires N <= M.
+ * O(N^2M)
+*/
+pair<int, vi> hungarian(const vvi &a) {
+	if (a.empty()) return {0, {}};
+	int n = (int)a.size() + 1, m = (int)a[0].size() + 1;
+	vi u(n), v(m), p(m), ans(n - 1);
+	for(int i = 1; i < n; i++) {
+		p[0] = i;
+		int j0 = 0; // add "dummy" worker 0
+		vi dist(m, INT_MAX), pre(m, -1);
+		vector<bool> done(m + 1);
+		do { // dijkstra
+			done[j0] = true;
+			int i0 = p[j0], j1, delta = INT_MAX;
+			for(int j = 1; j < m; j++) if (!done[j]) {
+				auto cur = a[i0 - 1][j - 1] - u[i0] - v[j];
+				if (cur < dist[j]) dist[j] = cur, pre[j] = j0;
+				if (dist[j] < delta) delta = dist[j], j1 = j;
+			}
+			for(int j = 0; j < m; j++) {
+				if (done[j]) u[p[j]] += delta, v[j] -= delta;
+				else dist[j] -= delta;
+			}
+			j0 = j1;
+		} while (p[j0]);
+		while (j0) { // update alternating path
+			int j1 = pre[j0];
+			p[j0] = p[j1], j0 = j1;
+		}
+	}
+	for(int j = 1; j < m; j++) if (p[j]) ans[p[j] - 1] = j - 1;
+	return {-v[0], ans}; // min cost
+}

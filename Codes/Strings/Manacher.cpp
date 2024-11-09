@@ -1,28 +1,29 @@
-// O(n) => solo string tamanio impar
-vector<int> manacher_odd(string s) {
+// para verificar si un substring es palindromo
+// return pal[l + r] >= (r - l + 1) + 1; indexando en 0
+
+vi manacher_odd(string s) {
     int n = s.size();
-    s = "$" + s + "^";
-    vector<int> p(n + 2);
+    s = "@" + s + "$";
+    vi len(n + 1);
     int l = 1, r = 1;
     for(int i = 1; i <= n; i++) {
-        p[i] = max(0, min(r - i, p[l + (r - i)]));
-        while(s[i - p[i]] == s[i + p[i]]) {
-            p[i]++;
-        }
-        if(i + p[i] > r) {
-            l = i - p[i], r = i + p[i];
+        len[i] = min(r - i, len[l + (r - i)]);
+        while(s[i - len[i]] == s[i + len[i]]) len[i]++;
+        if(i + len[i] > r) {
+            l = i - len[i];
+            r = i + len[i];
         }
     }
-    return vector<int>(begin(p) + 1, end(p) - 1);
+    len.erase(begin(len));
+    return len;
 }
 
-
-// Para cualquier tamanio par o impar 
-vector<int> manacher(string s) {
-    string t;
-    for(auto c: s) {
-        t += string("#") + c;
+vi manacher(string s) {
+    string ns(1, '#'); 
+    for(char c : s) {
+        ns.push_back(c);
+        ns.push_back('#');
     }
-    auto res = manacher_odd(t + "#");
-    return vector<int>(begin(res) + 1, end(res) - 1);
+    auto res = manacher_odd(ns);
+    return vi(res.begin() + 1, res.end() - 1);
 }
