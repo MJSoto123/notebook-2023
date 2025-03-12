@@ -1,32 +1,70 @@
-> Guarda el estado del segment tree después de cada actualización para permitir hacer consultas sobre estados pasados.
-> Consultas y actualizaciones en O(logn), ocupa O(nlogn) en memoria.
+using ll = long long ; 
+class PersistentSegtree {
+private:
+    struct Node {
+        ll sum = 0;
+        int l = 0, r = 0;
+    };
 
-struct node {
-    node *left, *right;
-    int val;
+    const int n;
+    vector<Node> tree;
+    int timer = 1;
 
-    node() : left(this), right(this), val(0) {}
-    node(node *left, node *right, int val) :
-        left(left), right(right), val(val) {}
+    Node join(int l, int r) { return Node{tree[l].sum + tree[r].sum, l, r}; }
 
-    node* update(int l, int r, int i, int x) {
-        if (l == r) return new node(nullptr, nullptr, val + x);
-        int m = (l + r) / 2;
-        if (i <= m)
-            return new node(left->update(l, m, i, x), right, val + x);
-        return new node(left, right->update(m + 1, r, i, x), val + x);
+    int build(int tl, int tr, const vector<int> &arr) {
+        if (tl == tr) {
+            tree[timer] = {arr[tl], 0, 0};
+            return timer++;
+        }
+
+        int mid = (tl + tr) / 2;
+        tree[timer] = join(build(tl, mid, arr), build(mid + 1, tr, arr));
+
+        return timer++;
     }
 
-    int query(int l, int r, int i, int j) {
-        if (i > r || l > j) return 0;
-        if (i <= l && r <= j) return this->val;
-        int m = (l + r) / 2;
-        int lf = left->query(l, m, i, j);
-        int rg = right->query(m + 1, r, i, j);
-        return lf + rg;
+    int set(int v, int pos, int val, int tl, int tr) {
+        if (tl == tr) {
+            tree[timer] = {val, 0, 0};
+            return timer++;
+        }
+
+        int mid = (tl + tr) / 2;
+        if (pos <= mid) {
+            tree[timer] = join(set(tree[v].l, pos, val, tl, mid), tree[v].r);
+        } else {
+            tree[timer] = join(tree[v].l, set(tree[v].r, pos, val, mid + 1, tr));
+        }
+
+        return timer++;
+    }
+
+    ll range_sum(int v, int ql, int qr, int tl, int tr) {
+        if (qr < tl || tr < ql) { return 0ll; }
+        if (ql <= tl && tr <= qr) { return tree[v].sum; }
+
+        int mid = (tl + tr) / 2;
+        return range_sum(tree[v].l, ql, qr, tl, mid) +
+                range_sum(tree[v].r, ql, qr, mid + 1, tr);
+    }
+
+public:
+    PersistentSegtree(int n, int MX_NODES) : n(n), tree(MX_NODES) {}
+
+    int build(const vector<int> &arr) { return build(0, n - 1, arr); }
+
+    int set(int root, int pos, int val) { return set(root, pos, val, 0, n - 1); }
+
+    ll range_sum(int root, int l, int r) { return range_sum(root, l, r, 0, n - 1); }
+
+    int add_copy(int root) {
+        tree[timer] = tree[root];
+        return timer++;
     }
 };
-
-vector<node*> roots = {new node()};
-roots.pb(roots.back()->update(0, n-1, i, x));
-roots[i]->query(0, n-1, l, r);
+  
+// uso : PersistentSegTree st(n, mx); 
+// n = tamanio del arreglo, mx = 2 * n +  q * (2 + log(n))
+// guardar raices en vector
+// vi roots = { st.build(A) } ;  inicializacion
